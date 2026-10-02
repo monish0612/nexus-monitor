@@ -1,0 +1,45 @@
+name: monitor
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      fail:
+        description: Force one failing check
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: .monitor-state
+          key: monitor-state-${{ github.run_id }}
+          restore-keys: monitor-state-
+      - name: Probe
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          SMOKE_APP_USER: monish
+          SMOKE_APP_PASSWORD: ${{ secrets.SMOKE_APP_PASSWORD }}
+          NEXUS_SMOKE_API_KEY: ${{ secrets.NEXUS_SMOKE_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FORCE_FAIL: ${{ inputs.fail }}
+          MONITOR_STATE: .monitor-state/state
+        run: sh probe.sh
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .monitor-state
+          key: monitor-state-${{ github.run_id }}
