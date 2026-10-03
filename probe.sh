@@ -24,23 +24,19 @@ note "web=$web health=$health narrator=$narrator"
 [ "$health" = "200" ] || fail=1
 [ "$narrator" = "200" ] || fail=1
 
-token=
-login=000
-if [ -n "${NEXUS_SMOKE_API_KEY:-}" ]; then
-  token=$NEXUS_SMOKE_API_KEY
-  login=200
-  note "credential=api_key"
+# A read-only API key, and nothing else. This used to fall back to logging in
+# as the owner, which meant an uptime probe running every few minutes held a
+# human password that can write anything. A probe with no key is a broken
+# probe, so it reports that rather than reaching for another credential.
+token=${NEXUS_SMOKE_API_KEY:-}
+login=200
+if [ -z "$token" ]; then
+  note "credential=missing"
+  login=000
+  fail=1
 else
-  note "credential=password_login"
-  login=$(curl -sS -o /tmp/nexus-login.json -w '%{http_code}' --max-time 20 \
-    -H 'content-type: application/json' \
-    -d "{\"username\":\"${SMOKE_APP_USER:-monish}\",\"password\":\"${SMOKE_APP_PASSWORD:-}\"}" \
-    "$base/api/v1/auth/app-login" || printf '000')
-  note "login=$login"
-  token=$(python3 -c 'import json; print(json.load(open("/tmp/nexus-login.json")).get("token",""))' 2>/dev/null || true)
-  rm -f /tmp/nexus-login.json
+  note "credential=api_key"
 fi
-[ "$login" = "200" ] || fail=1
 
 backup=missing
 if [ -n "$token" ]; then

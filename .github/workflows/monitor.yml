@@ -30,8 +30,9 @@ jobs:
       - name: Probe
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
-          SMOKE_APP_USER: monish
-          SMOKE_APP_PASSWORD: ${{ secrets.SMOKE_APP_PASSWORD }}
+          # A read-only key. The owner's password used to be here as a
+          # fallback, which is a login that can write anything, held by a job
+          # that runs on a schedule.
           NEXUS_SMOKE_API_KEY: ${{ secrets.NEXUS_SMOKE_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
